@@ -1,0 +1,120 @@
+stimuli_tags:
+  - tag: appreciation
+    dopamine_weight: 0.16
+    survival_weight: 0.04
+
+  - tag: rejection
+    dopamine_weight: -0.20
+    survival_weight: -0.10
+
+  - tag: challenge
+    dopamine_weight: 0.06
+    survival_weight: 0.12
+
+  - tag: boredom
+    dopamine_weight: -0.14
+    survival_weight: -0.04
+
+  - tag: curiosity
+    dopamine_weight: 0.18
+    survival_weight: 0.02
+
+  - tag: loneliness
+    dopamine_weight: -0.12
+    survival_weight: -0.16
+
+  - tag: playfulness
+    dopamine_weight: 0.10
+    survival_weight: 0.06
+
+  - tag: threat
+    dopamine_weight: -0.18
+    survival_weight: -0.20
+
+  - tag: affection
+    dopamine_weight: 0.14
+    survival_weight: 0.08
+
+  - tag: validation
+    dopamine_weight: 0.12
+    survival_weight: 0.06
+
+  - tag: dismissal
+    dopamine_weight: -0.16
+    survival_weight: -0.08
+
+  - tag: inspiration
+    dopamine_weight: 0.18
+    survival_weight: 0.10
+
+  - tag: betrayal
+    dopamine_weight: -0.20
+    survival_weight: -0.18
+
+  - tag: comfort
+    dopamine_weight: 0.10
+    survival_weight: 0.12
+
+  - tag: awkwardness
+    dopamine_weight: -0.08
+    survival_weight: -0.06
+
+  - tag: admiration
+    dopamine_weight: 0.17 # Original 0.85
+    survival_weight: 0.04
+
+  - tag: envy
+    dopamine_weight: -0.12
+    survival_weight: -0.06
+
+  - tag: excitement
+    dopamine_weight: 0.20
+    survival_weight: 0.02
+
+  - tag: fear
+    dopamine_weight: -0.18
+    survival_weight: -0.20
+
+  - tag: shame
+    dopamine_weight: -0.16
+    survival_weight: -0.14
+
+  - tag: humor
+    dopamine_weight: 0.14
+    survival_weight: 0.04
+
+  - tag: tension
+    dopamine_weight: -0.10
+    survival_weight: -0.12
+
+  - tag: respect
+    dopamine_weight: 0.12
+    survival_weight: 0.10
+
+  - tag: admiration
+    dopamine_weight: 0.16 # Original 0.8
+    survival_weight: 0.06
+
+  - tag: nostalgia
+    dopamine_weight: 0.08
+    survival_weight: -0.02
+
+  - tag: fatigue
+    dopamine_weight: -0.12
+    survival_weight: -0.08
+
+  - tag: urgency
+    dopamine_weight: -0.06
+    survival_weight: 0.14
+
+  - tag: awe
+    dopamine_weight: 0.19
+    survival_weight: 0.08
+
+  - tag: guilt
+    dopamine_weight: -0.14
+    survival_weight: -0.16
+  
+  - tag: sarcasm
+    dopamine_weight: 0.02
+    survival_weight: 0.002
