@@ -1,0 +1,29 @@
+# Savaan on Cloudflare. Fill in the two placeholder IDs after `wrangler login`
+# (needs the owner's Cloudflare account), then:
+#   npx wrangler d1 create savaan-db                 -> paste the id below
+#   npx wrangler vectorize create episodic-memory --dimensions=768 --metric=cosine
+#   npx wrangler d1 execute savaan-db --file=./schema.sql
+#   npx wrangler deploy
+name = "savaan"
+main = "src/index.ts"
+compatibility_date = "2026-05-01"
+
+[ai]
+binding = "AI"
+
+[[vectorize]]
+binding = "VECTORIZE"
+index_name = "episodic-memory"
+
+[[d1_databases]]
+binding = "DB"
+database_name = "savaan-db"
+database_id = "REPLACE_WITH_D1_ID"
+
+[[durable_objects.bindings]]
+name = "EMOTION_STATE"
+class_name = "EmotionState"
+
+[[migrations]]
+tag = "v1"
+new_sqlite_classes = ["EmotionState"]
