@@ -46,7 +46,7 @@ export default function ChatInterface() {
         const formData = new FormData();
         formData.set("file", audioBlob);
         try {
-            const userId=localStorage.getItem('userId');
+           const userId = 'local-demo';
             const response = await API.post(`/users/${userId}/respond`, formData, {
                 headers: { "Content-Type": "multipart/form-data" },
             });

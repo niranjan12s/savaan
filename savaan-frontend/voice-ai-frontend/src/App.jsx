@@ -11,9 +11,8 @@ function App() {
   return (
    <Router>
     <Routes>
-      <Route path='/' element={<LoginPage/>}/>
       <Route path='/register' element={<RegisterPage/>}/>
-      <Route path='/chat' element={<ChatPage/>}/>
+      <Route path='/' element={<ChatPage/>}/>
     </Routes>
    </Router>
   )
