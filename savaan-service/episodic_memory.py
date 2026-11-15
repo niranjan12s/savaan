@@ -1,23 +1,14 @@
-from typing import Optional
-from sqlmodel import Session,select
-from model import models
-import google.generativeai as genai
-import re
 import json
-from chromadb import Collection
-from emotional_state import get_dopamine_and_survival_history,get_current_dopamine_and_survival
-from conversation_history import get_conversation_history,reset_conversation
-from sentence_transformers import SentenceTransformer
+from typing import Optional
 from uuid import uuid4
-import numpy as np
 from datetime import datetime, timezone
 
-model = genai.GenerativeModel("gemini-2.0-flash")
+from providers.llm import LLMProvider, parse_json_response
+from providers.state_store import StateStore
+from providers.vector_store import VectorStore
 
-embedding_model=SentenceTransformer("all-MiniLM-L6-v2")
-
-def create_episodic_memory(user_id,session: Session):
-        conversation=get_conversation_history(user_id,session)
+def create_episodic_memory(user_id,state_store: StateStore,llm: LLMProvider):
+        conversation=state_store.get_conversation_history(user_id)
         prompt = f"""
 You are responsible for generating an episodic memory from the conversation between a user and an AI.
 
@@ -44,26 +35,24 @@ Return the output strictly in the following JSON format:
 }}
 Only return a valid json
 """
-        response = model.generate_content(prompt)
-        cleaned = re.sub(r"```json|```", "", response.text).strip()
-        return json.loads(cleaned)
+        return parse_json_response(llm.generate(prompt))
 
-def create_episodic_embedding(user_id,episode_tags,session,current_metrics):
-    historical_metrics=get_dopamine_and_survival_history(user_id=user_id,session=session)
+def create_episodic_embedding(user_id,episode_tags,state_store: StateStore,current_metrics,llm: LLMProvider):
+    historical_metrics=state_store.get_metrics_history(user_id)
     prompt = f"""
 You are an emotional summarizer designed for episodic memory storage. You are given the following data:
 
 1. Dopamine and survival history over an episode (values are normalized between 0 and 1):
-   - User dopamine history: {historical_metrics.dopamine_user}
-   - User survival history: {historical_metrics.survival_user}
-   - AI dopamine history: {historical_metrics.dopamine_ai}
-   - AI survival history: {historical_metrics.survival_ai}
+   - User dopamine history: {historical_metrics["dopamine_user"]}
+   - User survival history: {historical_metrics["survival_user"]}
+   - AI dopamine history: {historical_metrics["dopamine_ai"]}
+   - AI survival history: {historical_metrics["survival_ai"]}
 
 2. Tone tags detected for this episode: {episode_tags}
 
 3. Current dopamine and survival values:
-   - User: dopamine={current_metrics.dopamine_user}, survival={current_metrics.survival_user}
-   - AI: dopamine={current_metrics.dopamine_ai}, survival={current_metrics.survival_ai}
+   - User: dopamine={current_metrics["dopamine_user"]}, survival={current_metrics["survival_user"]}
+   - AI: dopamine={current_metrics["dopamine_ai"]}, survival={current_metrics["survival_ai"]}
 
 Notes:
 - A value near 1 represents a **high level of dopamine or survival**, a value near 0 represents a **low level**.  
@@ -80,30 +69,28 @@ Your task is to generate a **single, coherent paragraph** that summarizes the em
 
 Return **only the paragraph**, ready to be vectorized for memory retrieval.
 """
-    response = model.generate_content(prompt)
-    return response.text
+    return llm.generate(prompt)
 
 
 
-def parse_episodic_memory(user_id,session:Session,chroma_client: Collection):
-    episodic_memory=create_episodic_memory(user_id,session)
-    current_metrics=get_current_dopamine_and_survival(user_id=user_id,session=session)
-    episodic_embedding=create_episodic_embedding(user_id,episodic_memory.tags,session,current_metrics)
-    chroma_client.add(
-          ids=[uuid4()],
-          documents=episodic_memory.frames,
-          embeddings=[embedding_model.encode([episodic_embedding])[0]],
-          metadatas=[{ 
+def parse_episodic_memory(user_id,state_store: StateStore,vector_store: VectorStore,llm: LLMProvider):
+    episodic_memory=create_episodic_memory(user_id,state_store,llm)
+    current_metrics=state_store.get_current_metrics(user_id)
+    episodic_embedding=create_episodic_embedding(user_id,episodic_memory["tags"],state_store,current_metrics,llm)
+    vector_store.add_episode(
+          episode_id=str(uuid4()),
+          documents=episodic_memory["frames"],
+          embedding=vector_store.embed(episodic_embedding),
+          metadata={ 
                 "user_id":user_id,
-                "dopamine_user":current_metrics.dopamine_user,
-                "survival_user":current_metrics.survival_user,
-                "dopamine_ai":current_metrics.dopamine_ai,
-                "survival_ai":current_metrics.survival_ai,
-                "tags":episodic_memory.tags,
+                "dopamine_user":current_metrics["dopamine_user"],
+                "survival_user":current_metrics["survival_user"],
+                "dopamine_ai":current_metrics["dopamine_ai"],
+                "survival_ai":current_metrics["survival_ai"],
+                "tags":", ".join(episodic_memory["tags"]),
                 "episodic_embedding":episodic_embedding,
-                "timestamp":datetime.now(timezone.utc)
+                "timestamp":datetime.now(timezone.utc).isoformat()
           }
-          ]
     )
 
   
@@ -146,13 +133,9 @@ One standalone paragraph describing the emotional and interpersonal nature of th
     return prompt.strip()
 
 
-def fetch_from_episodic_memory(user_id,snippet,tone_tags,session: Session,chroma_client: Collection):
-    current_metrics=get_current_dopamine_and_survival(user_id,session=session)
+def fetch_from_episodic_memory(user_id,snippet,tone_tags,state_store: StateStore,vector_store: VectorStore):
+    current_metrics=state_store.get_current_metrics(user_id)
     episodic_probe=generate_episode_probe_prompt(tone_tags,snippet,current_metrics["dopamine_user"],current_metrics["survival_user"],
-                                  current_metrics["dopamine_ai"],current_metrics["dopamine_ai"],get_conversation_history(user_id,session))
-    probe_encoding=embedding_model.encode([episodic_probe])[0]
+                                  current_metrics["dopamine_ai"],current_metrics["dopamine_ai"],state_store.get_conversation_history(user_id))
 
-    results=chroma_client.query(query_embeddings=[probe_encoding],
-                                n_results=5,
-                                include=["documents","metadatas","distances"])
-    return results
+    return vector_store.query_episodes(vector_store.embed(episodic_probe), n_results=5)

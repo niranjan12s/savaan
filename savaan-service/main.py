@@ -5,21 +5,21 @@ from auth import hash_password,create_access_token
 from auth import pwd_context
 from fastapi.middleware.cors import CORSMiddleware
 import os
-from transcriber import transcribe_audio
 import uvicorn
 from middleware import request
 from logger import logger
 from model import models
 from emotional_engine import generate_emotional_summary
-from emotional_state import *
-import chromadb
-from episodic_memory import fetch_from_episodic_memory,create_episodic_memory
-from conversation_history import get_conversation_history,reset_conversation,update_conversation_history
+from emotional_state import EmotionalStateManager
+from episodic_memory import fetch_from_episodic_memory,parse_episodic_memory
 from central_response_generator import generate_reply
+from providers import factory
 
 models.init_db()
-chroma_client = chromadb.PersistentClient(path="./chroma_storage")
-episodic_memory=chroma_client.get_or_create_collection(name="episodic_memory")
+llm = factory.get_llm()
+vector_store = factory.get_vector_store()
+state_store = factory.get_state_store()
+transcriber = factory.get_transcriber()
 
 
 app=FastAPI()
@@ -82,33 +82,32 @@ async def respond(user_id: int,file: UploadFile = File(...)):
     with open(file_path,"wb") as f:
         f.write(await file.read())
     try:
-        with next(get_session()) as session:
-            #return get_conversation_history(user_id,session)
-            transcript=transcribe_audio(file_path)
+            transcript=transcriber.transcribe(file_path)
             logger.info(f"Transcription completed: {transcript}")
-            stimuli_tag_data_user=generate_emotional_summary(transcript)
+            stimuli_tag_data_user=generate_emotional_summary(transcript,llm)
             logger.info(f"tags: {stimuli_tag_data_user}")
-            emotional_state=EmotionalStateManager(user_id,session=session)
-            logger.info(f"Conversation_history: {get_conversation_history(user_id,session)}")
-            episodic_results=fetch_from_episodic_memory(user_id,transcript,stimuli_tag_data_user,session,episodic_memory)
+            emotional_state=EmotionalStateManager(user_id,state_store)
+            logger.info(f"Conversation_history: {state_store.get_conversation_history(user_id)}")
+            episodic_results=fetch_from_episodic_memory(user_id,transcript,stimuli_tag_data_user,state_store,vector_store)
             logger.info(f"Episodic Results : {episodic_results}")
-            main_reply=generate_reply(transcript,get_current_dopamine_and_survival(user_id,session),
-                        get_dopamine_and_survival_history(user_id,session),
-                        get_conversation_history(user_id,session),
-                        episodic_results["documents"])
-            stimuli_tag_data_ai=generate_emotional_summary(main_reply["response"])
+            main_reply=generate_reply(transcript,state_store.get_current_metrics(user_id),
+                        state_store.get_metrics_history(user_id),
+                        state_store.get_conversation_history(user_id),
+                        episodic_results["documents"],llm)
+            stimuli_tag_data_ai=generate_emotional_summary(main_reply["response"],llm)
             logger.info(f"tags: {stimuli_tag_data_ai}")
-            if main_reply["continuity"]<1 and get_conversation_history(user_id,session)is not None and get_conversation_history(user_id,session)>=10:
+            history_now=state_store.get_conversation_history(user_id)
+            if main_reply["continuity"]<1 and history_now is not None and len(history_now)>=10:
                 logger.info(f"Episodic memory is being created due to continuity: {main_reply['continuity']}")
-                create_episodic_memory(user_id,session)
-                reset_conversation(user_id,session)
-            emotional_state.recalculate_states(stimuli_tag_data_user,stimuli_tag_data_ai,session)
-            update_conversation_history(user_id,"user",transcript,main_reply["continuity"],session)
-            update_conversation_history(user_id,"ai",main_reply["response"],main_reply["continuity"],session)
+                parse_episodic_memory(user_id,state_store,vector_store,llm)
+                state_store.reset_conversation(user_id)
+            emotional_state.recalculate_states(stimuli_tag_data_user,stimuli_tag_data_ai)
+            state_store.update_conversation_history(user_id,"user",transcript,main_reply["continuity"])
+            state_store.update_conversation_history(user_id,"ai",main_reply["response"],main_reply["continuity"])
             return {
                 "transcript":transcript,
                 "response":main_reply["response"],
-                "metrics":get_current_dopamine_and_survival(user_id,session)
+                "metrics":state_store.get_current_metrics(user_id)
             }
     except Exception:
         raise HTTPException(status.HTTP_500_INTERNAL_SERVER_ERROR,detail="An error occured while processing the request")
