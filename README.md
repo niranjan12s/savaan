@@ -86,3 +86,37 @@ npm run dev
 ```
 
 Register a user, log in, and start talking. Watch the dopamine/survival metrics shift between messages.
+
+## Deploy to Cloudflare (optional)
+
+The Worker in `worker/` runs the same pipeline on Cloudflare: Workers AI
+(Llama 3.3 for conversation and tagging, Whisper for voice input), Vectorize
+for episodic memory, D1 for conversation history, and a Durable Object per
+user for the dopamine/survival state.
+
+Prerequisites: a Cloudflare account (free is enough) and
+`npx wrangler login`.
+
+```bash
+cd worker
+npm install
+npx wrangler d1 create savaan-db
+# paste the printed database_id into wrangler.toml (REPLACE_WITH_D1_ID)
+npx wrangler vectorize create episodic-memory --dimensions=768 --metric=cosine
+npx wrangler d1 execute savaan-db --file=./schema.sql
+npx wrangler deploy
+```
+
+Then point the frontend at the Worker by setting `VITE_API_URL` in
+`savaan-frontend/voice-ai-frontend/.env`:
+
+```
+VITE_API_URL=https://savaan.<your-subdomain>.workers.dev
+```
+
+Notes on the Worker version:
+- No auth layer: the demo addresses one user id directly
+  (`POST /users/<id>/respond`, multipart `file` field with the audio).
+- The Python service is unchanged; `SAVAAN_STACK=local` remains the default
+  and behaves exactly as before.
+- See PROMPTS.md for the prompt history.

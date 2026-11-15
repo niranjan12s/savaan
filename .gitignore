@@ -6,3 +6,4 @@ chroma_storage/
 temp/
 savaan-service/savaan_users.db
 savaan-service/logs/
+worker/node_modules/
