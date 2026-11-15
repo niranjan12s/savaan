@@ -1,10 +1,6 @@
-import google.generativeai as genai
-import re
-import json
+from providers.llm import LLMProvider, parse_json_response
 
-model = genai.GenerativeModel("gemini-2.0-flash")
-
-def generate_reply(current_user_message,current_metrics,historical_metrics,conversation_history,episodic_documents):
+def generate_reply(current_user_message,current_metrics,historical_metrics,conversation_history,episodic_documents,llm: LLMProvider):
     main_prompt = f"""
 You are an emotionally-aware AI called Savaan conversing with a human user. Your behavior is determined by two internal emotional variables: **dopamine** and **survival** — tracked both for yourself and the user.
 
@@ -78,6 +74,5 @@ If it's playful, banter-like, or tangential, return a moderate value.
 Be very nuanced. Avoid extremes unless strongly justified.
 
 """
-    response = model.generate_content(main_prompt)
-    cleaned = re.sub(r"```json|```", "", response.text).strip()
-    return json.loads(cleaned)
+    response = llm.generate(main_prompt)
+    return parse_json_response(response)

@@ -1,16 +1,13 @@
-import google.generativeai as genai
 import os
-from dotenv import load_dotenv
-import re
-import json
 import yaml
 from pathlib import Path
+
+from dotenv import load_dotenv
+
+from providers.llm import LLMProvider, parse_json_response
+
 load_dotenv()
 
-
-genai.configure(api_key=os.getenv("API_KEY"))  #secret do not commit
-
-model = genai.GenerativeModel("gemini-2.0-flash")
 
 def load_stimuli_tags(path=None):
     if path is None:
@@ -54,13 +51,12 @@ Do not generate any text apart from the json
 """
     return prompt
 
-def generate_emotional_summary(input):
+def generate_emotional_summary(input, llm: LLMProvider):
     try:
-        response = model.generate_content(build_emotion_tagging_prompt(
+        response = llm.generate(build_emotion_tagging_prompt(
             input,load_stimuli_tags()
 ))
-        cleaned = re.sub(r"```json|```", "", response.text).strip()
-        return json.loads(cleaned)
+        return parse_json_response(response)
     except Exception as e:
         print(f"Error occurred during tag generation: {e}")
         return None

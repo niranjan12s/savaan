@@ -123,8 +123,8 @@ def reset_dopamine_survival_history(user_id,int,session:Session):
      session.commit()
 
 class EmotionalStateManager:
-    def __init__(self,user_id,session):
-        metrics=get_current_dopamine_and_survival(user_id,session)
+    def __init__(self,user_id,state_store):
+        metrics=state_store.get_current_metrics(user_id)
         if metrics is None:
              self.initial_state={
             "dopamine_user":0.5,
@@ -140,10 +140,11 @@ class EmotionalStateManager:
         "survival_ai": metrics["survival_ai"]
             }
         self.user_id=user_id
-        update_dopamine_and_survival_data(user_id,self.initial_state["dopamine_user"],self.initial_state["survival_user"],self.initial_state["dopamine_ai"],self.initial_state["survival_ai"],session)
+        self._state_store=state_store
+        state_store.update_metrics(user_id,self.initial_state["dopamine_user"],self.initial_state["survival_user"],self.initial_state["dopamine_ai"],self.initial_state["survival_ai"])
     
-    def recalculate_states(self,stimuli_user,stimuli_ai,session):
-        current = get_current_dopamine_and_survival(self.user_id, session)
+    def recalculate_states(self,stimuli_user,stimuli_ai):
+        current = self._state_store.get_current_metrics(self.user_id)
         if current is None:
             current = {
             "dopamine_user": 0.5,
@@ -156,13 +157,12 @@ class EmotionalStateManager:
         survival_user = compute_adjusted_survival(current["survival_user"], stimuli_user, current["timestamp"])
         dopamine_ai = compute_adjusted_dopamine(current["dopamine_ai"], stimuli_ai, current["timestamp"])
         survival_ai = compute_adjusted_survival(current["survival_ai"], stimuli_ai, current["timestamp"])
-        update_dopamine_and_survival_data(
+        self._state_store.update_metrics(
             self.user_id,
             dopamine_user,
             survival_user,
             dopamine_ai,
-            survival_ai,
-            session
+            survival_ai
         )
 
         self.initial_state = {
