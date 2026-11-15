@@ -5,7 +5,6 @@ import json
 model = genai.GenerativeModel("gemini-2.0-flash")
 
 def generate_reply(current_user_message,current_metrics,historical_metrics,conversation_history,episodic_documents):
-    print("Making the prompt")
     main_prompt = f"""
 You are an emotionally-aware AI called Savaan conversing with a human user. Your behavior is determined by two internal emotional variables: **dopamine** and **survival** — tracked both for yourself and the user.
 
@@ -79,7 +78,6 @@ If it's playful, banter-like, or tangential, return a moderate value.
 Be very nuanced. Avoid extremes unless strongly justified.
 
 """
-    print("Made the prompt")
     response = model.generate_content(main_prompt)
     cleaned = re.sub(r"```json|```", "", response.text).strip()
     return json.loads(cleaned)

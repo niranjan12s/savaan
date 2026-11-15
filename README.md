@@ -42,3 +42,47 @@ Acts as the AI's "autobiographical memory."
 * **Backend**: Python, FastAPI.
 * **Databases**: SQLite (SQLModel) for users and short-term logs, ChromaDB for vector-based episodic memory.
 * **AI & ML**: Google Generative AI (`gemini-2.0-flash`) for cognition and emotional tagging, `whisper` for transcription, `sentence-transformers` for embeddings.
+## Setup and Run
+
+### Backend (`savaan-service`)
+
+```bash
+cd savaan-service
+python -m venv .venv && source .venv/bin/activate
+pip install -r requirements.txt
+```
+
+Create a `.env` file in `savaan-service/`:
+
+```
+API_KEY=<your Google AI Studio key>
+SECRET_KEY=<any long random string>
+ALLOWED_ORIGINS=http://localhost:5173
+```
+
+Run the API from inside `savaan-service/`:
+
+```bash
+uvicorn main:app --reload
+```
+
+The first run downloads the Whisper `base` model and the `all-MiniLM-L6-v2` embedding model automatically.
+
+### Frontend (`savaan-frontend/voice-ai-frontend`)
+
+```bash
+cd savaan-frontend/voice-ai-frontend
+npm install
+```
+
+Create a `.env` file with the backend URL:
+
+```
+VITE_API_URL=http://localhost:8000
+```
+
+```bash
+npm run dev
+```
+
+Register a user, log in, and start talking. Watch the dopamine/survival metrics shift between messages.

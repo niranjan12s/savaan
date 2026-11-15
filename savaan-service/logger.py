@@ -12,7 +12,10 @@ logger = logging.getLogger("app")
 logger.setLevel(logging.INFO)
 
 # File handler
-file_handler = logging.FileHandler("savaan-service/logs/app.log")
+from pathlib import Path
+_log_dir = Path(__file__).parent / "logs"
+_log_dir.mkdir(exist_ok=True)
+file_handler = logging.FileHandler(_log_dir / "app.log")
 file_handler.setLevel(logging.INFO)
 file_handler.setFormatter(logging.Formatter(LOG_FORMAT))
 file_handler.addFilter(RequestIdFilter())

@@ -49,14 +49,8 @@ def compute_adjusted_survival(current, stimuli_tags, last_updated, now=None):
     survival_delta=0
     defined_stimuli=load_stimuli_tags()
     for stimuli,score in stimuli_tags.items():
-          print(stimuli)
-          print(score)
           survival_delta += score * defined_stimuli.get(stimuli, {}).get("survival", 0)
-          print(survival_delta)
-    print(current)
     decayed = current * exp(-decay_rate * minutes_passed)
-    print(survival_delta)
-    print(decayed)
     updated = decayed + survival_delta
     stablized=(1-alpha)*updated+alpha*decayed
     return max(0, min(1, stablized))
@@ -151,7 +145,6 @@ class EmotionalStateManager:
     def recalculate_states(self,stimuli_user,stimuli_ai,session):
         current = get_current_dopamine_and_survival(self.user_id, session)
         if current is None:
-            print("No existing dopamine/survival data — using defaults")
             current = {
             "dopamine_user": 0.5,
             "survival_user": 1.0,
@@ -159,15 +152,10 @@ class EmotionalStateManager:
             "survival_ai": 1.0,
             "timestamp": datetime.now(timezone.utc)
         }
-        print("Calculating values")
         dopamine_user = compute_adjusted_dopamine(current["dopamine_user"], stimuli_user, current["timestamp"])
-        print("Calculated dipamine")
         survival_user = compute_adjusted_survival(current["survival_user"], stimuli_user, current["timestamp"])
-        print("Calculated dipamine")
         dopamine_ai = compute_adjusted_dopamine(current["dopamine_ai"], stimuli_ai, current["timestamp"])
-        print("Calculated dipamine")
         survival_ai = compute_adjusted_survival(current["survival_ai"], stimuli_ai, current["timestamp"])
-        print("Completed calc")
         update_dopamine_and_survival_data(
             self.user_id,
             dopamine_user,
