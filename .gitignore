@@ -1,2 +1,8 @@
 .env
 app.log
+__pycache__/
+*.py[cod]
+chroma_storage/
+temp/
+savaan-service/savaan_users.db
+savaan-service/logs/

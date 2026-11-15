@@ -1,0 +1,14 @@
+fastapi
+uvicorn[standard]
+sqlmodel
+chromadb
+google-generativeai
+openai-whisper
+sentence-transformers
+passlib[bcrypt]
+python-jose[cryptography]
+python-dotenv
+pydantic[email]
+python-multipart
+pyyaml
+numpy

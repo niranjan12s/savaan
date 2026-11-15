@@ -26,7 +26,6 @@ def update_conversation_history(user_id,role,message,continuity,session:Session)
           session.add(conversation_history)
           session.commit()
      else:
-          print(snippet)
           record=models.ConversationHistory(user_id=user_id,messages=[snippet])
           session.add(record)
           session.commit()
