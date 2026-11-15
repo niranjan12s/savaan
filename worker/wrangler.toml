@@ -18,7 +18,7 @@ index_name = "episodic-memory"
 [[d1_databases]]
 binding = "DB"
 database_name = "savaan-db"
-database_id = "REPLACE_WITH_D1_ID"
+database_id = "3b8bb7fd-1e2a-4d0e-953d-c5c8e0cfa481"
 
 [[durable_objects.bindings]]
 name = "EMOTION_STATE"
